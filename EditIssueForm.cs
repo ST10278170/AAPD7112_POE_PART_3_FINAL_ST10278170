@@ -1,13 +1,7 @@
-﻿using System;
+﻿
+using System;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 
 namespace MunicipalServicesApp
 {
@@ -25,7 +19,7 @@ namespace MunicipalServicesApp
 
         private void EditIssueForm_Load(object sender, EventArgs e)
         {
-            // Apply the modern municipal theme.
+            // Apply the municipal application theme.
             ApplyUnifiedTheme(this);
 
             // Configure the form.
@@ -51,6 +45,7 @@ namespace MunicipalServicesApp
 
         private void btnSave_Click(object sender, EventArgs e)
         {
+            // Validate the input fields.
             bool locationMissing =
                 string.IsNullOrWhiteSpace(txtLocation.Text);
 
@@ -77,6 +72,7 @@ namespace MunicipalServicesApp
                 return;
             }
 
+            // Ask the user to confirm the changes.
             DialogResult confirmation = MessageBox.Show(
                 "Save the changes made to this issue?",
                 "Confirm Changes",
@@ -88,14 +84,63 @@ namespace MunicipalServicesApp
                 return;
             }
 
-            _issue.Location = txtLocation.Text.Trim();
-            _issue.Category = cmbCategory.Text;
-            _issue.Description = txtDescription.Text.Trim();
+            // Prepare the updated values.
+            string updatedLocation = txtLocation.Text.Trim();
+            string updatedCategory = cmbCategory.Text.Trim();
+            string updatedDescription = txtDescription.Text.Trim();
 
-            DialogResult = DialogResult.OK;
-            Close();
+            // Ensure that the issue has a valid linked request ID.
+            if (_issue.RequestId <= 0)
+            {
+                MessageBox.Show(
+                    "This issue does not have a valid linked service request ID. " +
+                    "The changes cannot be saved.",
+                    "Service Request Not Found",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            // Update the corresponding service request first.
+            bool requestUpdated =
+                ServiceRequestRepository.UpdateRequestDetails(
+                    _issue.RequestId,
+                    updatedDescription,
+                    updatedCategory,
+                    updatedLocation);
+
+            // Do not update the issue if its service request
+            // could not be found or updated.
+            if (!requestUpdated)
+            {
+                MessageBox.Show(
+                    "The linked service request could not be updated. " +
+                    "Please check the request ID and try again.",
+                    "Update Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return;
+            }
+
+            // Update the original issue after the service request succeeds.
+            _issue.Location = updatedLocation;
+            _issue.Category = updatedCategory;
+            _issue.Description = updatedDescription;
+
+            MessageBox.Show(
+                "The issue and its linked service request have been updated successfully.",
+                "Update Successful",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+
+            // Return OK to the calling form.
+            this.DialogResult = DialogResult.OK;
+            this.Close();
         }
 
+        // Highlight fields containing invalid information.
         private void HighlightControl(
             Control control,
             bool hasError)
@@ -105,13 +150,14 @@ namespace MunicipalServicesApp
                 : Color.White;
         }
 
+        // Apply the unified municipal application theme.
         private void ApplyUnifiedTheme(Control parent)
         {
             parent.BackColor = Color.FromArgb(240, 244, 248);
 
             foreach (Control ctrl in parent.Controls)
             {
-                // Buttons
+                // Buttons.
                 if (ctrl is Button btn)
                 {
                     btn.BackColor = Color.FromArgb(0, 122, 204);
@@ -126,7 +172,7 @@ namespace MunicipalServicesApp
                     btn.Height = Math.Max(btn.Height, 38);
                 }
 
-                // Labels
+                // Labels.
                 if (ctrl is Label lbl)
                 {
                     lbl.ForeColor = Color.FromArgb(33, 37, 41);
@@ -136,7 +182,7 @@ namespace MunicipalServicesApp
                         FontStyle.Bold);
                 }
 
-                // Text entry controls
+                // Text entry controls.
                 if (ctrl is TextBox txt)
                 {
                     txt.BackColor = Color.White;
@@ -145,7 +191,7 @@ namespace MunicipalServicesApp
                     txt.Font = new Font("Segoe UI", 10);
                 }
 
-                // Category selection
+                // Category selection.
                 if (ctrl is ComboBox cmb)
                 {
                     cmb.BackColor = Color.White;
@@ -154,7 +200,7 @@ namespace MunicipalServicesApp
                     cmb.DropDownStyle = ComboBoxStyle.DropDownList;
                 }
 
-                // Theme controls inside panels or group boxes.
+                // Apply the theme recursively to nested controls.
                 if (ctrl.HasChildren)
                 {
                     ApplyUnifiedTheme(ctrl);

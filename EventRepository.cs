@@ -1,8 +1,6 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MunicipalServicesApp
 {
@@ -14,7 +12,7 @@ namespace MunicipalServicesApp
             {
                 Title = "Community Clean-Up Day",
                 Category = "Community",
-                EventDate = new DateTime(2026, 8, 1),
+                EventDate = new DateTime(2026, 12, 5),
                 Description = "Residents gather to clean parks and public spaces.",
                 Priority = 2
             },
@@ -23,7 +21,7 @@ namespace MunicipalServicesApp
             {
                 Title = "Community Health Fair",
                 Category = "Health",
-                EventDate = new DateTime(2026, 8, 5),
+                EventDate = new DateTime(2026, 12, 10),
                 Description = "Free health screenings and wellness information.",
                 Priority = 1
             },
@@ -32,7 +30,7 @@ namespace MunicipalServicesApp
             {
                 Title = "Youth Soccer Tournament",
                 Category = "Sports",
-                EventDate = new DateTime(2026, 8, 10),
+                EventDate = new DateTime(2026, 12, 15),
                 Description = "Local youth teams compete in a community tournament.",
                 Priority = 3
             },
@@ -41,7 +39,7 @@ namespace MunicipalServicesApp
             {
                 Title = "Water Maintenance Notice",
                 Category = "Infrastructure",
-                EventDate = new DateTime(2026, 8, 12),
+                EventDate = new DateTime(2026, 12, 20),
                 Description = "Scheduled maintenance affecting water supply.",
                 Priority = 1
             },
@@ -50,7 +48,7 @@ namespace MunicipalServicesApp
             {
                 Title = "Fire Awareness Workshop",
                 Category = "Safety",
-                EventDate = new DateTime(2026, 8, 18),
+                EventDate = new DateTime(2027, 1, 10),
                 Description = "Learn fire prevention and emergency procedures.",
                 Priority = 2
             },
@@ -59,7 +57,7 @@ namespace MunicipalServicesApp
             {
                 Title = "Neighbourhood Watch Meeting",
                 Category = "Safety",
-                EventDate = new DateTime(2026, 8, 22),
+                EventDate = new DateTime(2027, 1, 17),
                 Description = "Monthly community safety discussion.",
                 Priority = 2
             }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -8,26 +9,28 @@ namespace MunicipalServicesApp
 {
     public partial class LocalEventsForm : Form
     {
-        // Stores the user's 10 most recent category searches.
+        // Stores the user's most recent category searches.
         private readonly Queue<string> searchHistory =
             new Queue<string>();
 
-        // Organises events automatically according to their dates.
+        // Organises events according to their dates.
         private readonly SortedDictionary<DateTime, List<EventItem>>
             sortedEvents =
                 new SortedDictionary<DateTime, List<EventItem>>();
 
-        // Provides fast event lookup using the event title.
-        private readonly Dictionary<string, EventItem> eventLookup =
-            new Dictionary<string, EventItem>(
+        // Allows fast lookup of events by title.
+        // A list is used because different events may share a title.
+        private readonly Dictionary<string, List<EventItem>> eventLookup =
+            new Dictionary<string, List<EventItem>>(
                 StringComparer.OrdinalIgnoreCase);
 
         public LocalEventsForm()
         {
             InitializeComponent();
 
-            // Connect the row double-click event once.
             dgvEvents.CellDoubleClick += DgvEvents_CellDoubleClick;
+            btnClearSearch.Click += btnClearSearch_Click;
+            chkFilterByDate.CheckedChanged += chkFilterByDate_CheckedChanged;
         }
 
         private void LocalEventsForm_Load(object sender, EventArgs e)
@@ -37,13 +40,15 @@ namespace MunicipalServicesApp
             ConfigureEventGrid();
             BuildEventDataStructures();
             LoadCategories();
-            LoadEvents();
 
-            ConfigureDatePicker();
+            chkFilterByDate.Checked = false;
+            dtpEventDate.Enabled = false;
+
+            LoadEvents();
 
             lstRecommendations.Items.Clear();
             lstRecommendations.Items.Add(
-                "Search for a category to receive recommendations.");
+                "Search by category to receive event recommendations.");
         }
 
         private void ConfigureForm()
@@ -58,26 +63,6 @@ namespace MunicipalServicesApp
                 "Municipal Services - Local Events and Announcements";
         }
 
-        private void ConfigureDatePicker()
-        {
-            if (EventRepository.Events.Count == 0)
-            {
-                return;
-            }
-
-            DateTime earliestEventDate = EventRepository.Events
-                .Min(evt => evt.EventDate.Date);
-
-            DateTime latestEventDate = EventRepository.Events
-                .Max(evt => evt.EventDate.Date);
-
-            dtpEventDate.Value = earliestEventDate;
-            dtpEventDate.MinDate = earliestEventDate;
-            dtpEventDate.MaxDate = latestEventDate;
-            dtpEventDate.Format = DateTimePickerFormat.Custom;
-            dtpEventDate.CustomFormat = "dd MMMM yyyy";
-        }
-
         private void ConfigureEventGrid()
         {
             dgvEvents.ReadOnly = true;
@@ -88,6 +73,7 @@ namespace MunicipalServicesApp
             dgvEvents.AutoSizeColumnsMode =
                 DataGridViewAutoSizeColumnsMode.Fill;
             dgvEvents.MultiSelect = false;
+            dgvEvents.AutoGenerateColumns = true;
 
             dgvEvents.BackgroundColor = Color.White;
             dgvEvents.BorderStyle = BorderStyle.None;
@@ -109,9 +95,7 @@ namespace MunicipalServicesApp
 
             dgvEvents.ColumnHeadersHeight = 38;
 
-            dgvEvents.DefaultCellStyle.BackColor =
-                Color.White;
-
+            dgvEvents.DefaultCellStyle.BackColor = Color.White;
             dgvEvents.DefaultCellStyle.ForeColor =
                 Color.FromArgb(33, 37, 41);
 
@@ -135,6 +119,11 @@ namespace MunicipalServicesApp
 
             foreach (EventItem evt in EventRepository.Events)
             {
+                if (evt == null)
+                {
+                    continue;
+                }
+
                 DateTime eventDate = evt.EventDate.Date;
 
                 // SortedDictionary groups events by date.
@@ -146,16 +135,19 @@ namespace MunicipalServicesApp
 
                 sortedEvents[eventDate].Add(evt);
 
-                // Dictionary provides fast title-based lookup.
+                // Dictionary groups events by title.
                 if (!eventLookup.ContainsKey(evt.Title))
                 {
-                    eventLookup.Add(evt.Title, evt);
+                    eventLookup[evt.Title] =
+                        new List<EventItem>();
                 }
+
+                eventLookup[evt.Title].Add(evt);
             }
 
             // Sort events sharing the same date by priority.
-            foreach (List<EventItem> eventsOnDate
-                     in sortedEvents.Values)
+            // Lower priority numbers appear first.
+            foreach (List<EventItem> eventsOnDate in sortedEvents.Values)
             {
                 eventsOnDate.Sort(
                     (firstEvent, secondEvent) =>
@@ -170,14 +162,17 @@ namespace MunicipalServicesApp
             HashSet<string> categories =
                 new HashSet<string>(
                     EventRepository.Events
-                        .Select(evt => evt.Category),
+                        .Where(evt => evt != null)
+                        .Select(evt => evt.Category)
+                        .Where(category =>
+                            !string.IsNullOrWhiteSpace(category)),
                     StringComparer.OrdinalIgnoreCase);
 
             cmbCategory.Items.Clear();
             cmbCategory.Items.Add("All Categories");
 
-            foreach (string category
-                     in categories.OrderBy(category => category))
+            foreach (string category in categories.OrderBy(
+                category => category))
             {
                 cmbCategory.Items.Add(category);
             }
@@ -187,38 +182,55 @@ namespace MunicipalServicesApp
 
         private void LoadEvents()
         {
+            // Display only events scheduled for today or later.
             List<EventItem> upcomingEvents = sortedEvents
+                .Where(dateGroup =>
+                    dateGroup.Key >= DateTime.Today)
                 .SelectMany(dateGroup => dateGroup.Value)
+                .OrderBy(evt => evt.EventDate)
+                .ThenBy(evt => evt.Priority)
                 .ToList();
 
             DisplayEvents(upcomingEvents);
         }
 
-        private void DisplayEvents(
-            IEnumerable<EventItem> eventsToDisplay)
+        private void DisplayEvents(IEnumerable<EventItem> eventsToDisplay)
         {
+            List<EventItem> eventList = eventsToDisplay.ToList();
+
             dgvEvents.DataSource = null;
+            dgvEvents.DataSource = eventList;
 
-            dgvEvents.DataSource = eventsToDisplay
-                .Select(evt => new
-                {
-                    evt.Title,
-                    evt.Category,
-                    Date = evt.EventDate.ToString("dd MMMM yyyy"),
-                    evt.Description,
-                    evt.Priority
-                })
-                .ToList();
-
-            if (dgvEvents.Columns["Priority"] != null)
+            if (dgvEvents.Columns["Title"] != null)
             {
-                dgvEvents.Columns["Priority"].HeaderText =
-                    "Priority Level";
+                dgvEvents.Columns["Title"].HeaderText = "Event Title";
+                dgvEvents.Columns["Title"].FillWeight = 120;
+            }
+
+            if (dgvEvents.Columns["Category"] != null)
+            {
+                dgvEvents.Columns["Category"].HeaderText = "Category";
+                dgvEvents.Columns["Category"].FillWeight = 75;
+            }
+
+            if (dgvEvents.Columns["EventDate"] != null)
+            {
+                dgvEvents.Columns["EventDate"].HeaderText = "Event Date";
+                dgvEvents.Columns["EventDate"].DefaultCellStyle.Format =
+                    "dd MMMM yyyy";
+                dgvEvents.Columns["EventDate"].FillWeight = 90;
             }
 
             if (dgvEvents.Columns["Description"] != null)
             {
+                dgvEvents.Columns["Description"].HeaderText = "Description";
                 dgvEvents.Columns["Description"].FillWeight = 180;
+            }
+
+            if (dgvEvents.Columns["Priority"] != null)
+            {
+                dgvEvents.Columns["Priority"].HeaderText = "Priority Level";
+                dgvEvents.Columns["Priority"].FillWeight = 65;
             }
         }
 
@@ -229,23 +241,59 @@ namespace MunicipalServicesApp
 
         private void SearchEvents()
         {
+            string searchText = txtEventSearch.Text.Trim();
+
             string selectedCategory =
                 cmbCategory.SelectedItem?.ToString()
                 ?? "All Categories";
 
-            DateTime selectedDate =
-                dtpEventDate.Value.Date;
+            DateTime selectedDate = dtpEventDate.Value.Date;
 
             RecordSearch(selectedCategory);
 
+            // Start with future events only.
             IEnumerable<EventItem> filteredEvents =
                 EventRepository.Events.Where(evt =>
-                    (selectedCategory == "All Categories" ||
-                     evt.Category.Equals(
-                         selectedCategory,
-                         StringComparison.OrdinalIgnoreCase))
-                    &&
+                    evt != null &&
+                    evt.EventDate.Date >= DateTime.Today);
+
+            // Search event titles, descriptions and categories.
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                filteredEvents = filteredEvents.Where(evt =>
+                    (evt.Title ?? "").IndexOf(
+                        searchText,
+                        StringComparison.OrdinalIgnoreCase) >= 0
+
+                    ||
+
+                    (evt.Description ?? "").IndexOf(
+                        searchText,
+                        StringComparison.OrdinalIgnoreCase) >= 0
+
+                    ||
+
+                    (evt.Category ?? "").IndexOf(
+                        searchText,
+                        StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+
+            // Apply the category filter when a specific category is selected.
+            if (selectedCategory != "All Categories")
+            {
+                filteredEvents = filteredEvents.Where(evt =>
+                    string.Equals(
+                        evt.Category,
+                        selectedCategory,
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Apply the date filter only when the checkbox is selected.
+            if (chkFilterByDate.Checked)
+            {
+                filteredEvents = filteredEvents.Where(evt =>
                     evt.EventDate.Date == selectedDate);
+            }
 
             List<EventItem> searchResults = filteredEvents
                 .OrderBy(evt => evt.EventDate)
@@ -258,12 +306,33 @@ namespace MunicipalServicesApp
             if (searchResults.Count == 0)
             {
                 MessageBox.Show(
-                    "No events were found for the selected " +
-                    "category and date.",
+                    "No upcoming events matched your search. " +
+                    "Try another keyword, category or date.",
                     "No Events Found",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }
+        }
+
+        private void chkFilterByDate_CheckedChanged(
+            object sender,
+            EventArgs e)
+        {
+            dtpEventDate.Enabled = chkFilterByDate.Checked;
+        }
+
+        private void btnClearSearch_Click(object sender, EventArgs e)
+        {
+            txtEventSearch.Clear();
+            cmbCategory.SelectedIndex = 0;
+            chkFilterByDate.Checked = false;
+            dtpEventDate.Enabled = false;
+
+            LoadEvents();
+
+            lstRecommendations.Items.Clear();
+            lstRecommendations.Items.Add(
+                "Search by category to receive event recommendations.");
         }
 
         private void RecordSearch(string selectedCategory)
@@ -290,8 +359,7 @@ namespace MunicipalServicesApp
             if (searchHistory.Count == 0)
             {
                 lstRecommendations.Items.Add(
-                    "Search for a specific category to receive " +
-                    "recommendations.");
+                    "Search for a specific category to receive recommendations.");
 
                 return;
             }
@@ -319,7 +387,10 @@ namespace MunicipalServicesApp
             List<EventItem> recommendedEvents =
                 EventRepository.Events
                     .Where(evt =>
-                        evt.Category.Equals(
+                        evt != null &&
+                        evt.EventDate.Date >= DateTime.Today &&
+                        string.Equals(
+                            evt.Category,
                             preferredCategory,
                             StringComparison.OrdinalIgnoreCase))
                     .OrderBy(evt => evt.EventDate)
@@ -330,19 +401,20 @@ namespace MunicipalServicesApp
             if (recommendedEvents.Count == 0)
             {
                 lstRecommendations.Items.Add(
-                    "No recommendations are currently available.");
+                    "No upcoming recommendations are currently available.");
 
                 return;
             }
 
-            foreach (EventItem recommendedEvent
-                     in recommendedEvents)
+            lstRecommendations.Items.Add(
+                "Based on your interest in " + preferredCategory + ":");
+
+            foreach (EventItem recommendedEvent in recommendedEvents)
             {
                 string recommendation =
                     recommendedEvent.Title +
                     " | " +
-                    recommendedEvent.EventDate
-                        .ToString("dd MMM yyyy") +
+                    recommendedEvent.EventDate.ToString("dd MMM yyyy") +
                     " | " +
                     recommendedEvent.Category;
 
@@ -359,30 +431,24 @@ namespace MunicipalServicesApp
                 return;
             }
 
-            object titleValue =
-                dgvEvents.Rows[e.RowIndex].Cells["Title"].Value;
+            // Retrieve the actual event object from the selected row.
+            EventItem selectedEvent =
+                dgvEvents.Rows[e.RowIndex].DataBoundItem as EventItem;
 
-            if (titleValue == null)
+            if (selectedEvent == null)
             {
                 return;
             }
 
-            string eventTitle = titleValue.ToString();
-
-            if (eventLookup.TryGetValue(
-                eventTitle,
-                out EventItem selectedEvent))
-            {
-                MessageBox.Show(
-                    $"Title: {selectedEvent.Title}\n\n" +
-                    $"Category: {selectedEvent.Category}\n" +
-                    $"Date: {selectedEvent.EventDate:dd MMMM yyyy}\n" +
-                    $"Priority: {selectedEvent.Priority}\n\n" +
-                    $"Description:\n{selectedEvent.Description}",
-                    "Event Details",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
+            MessageBox.Show(
+                $"Title: {selectedEvent.Title}\n\n" +
+                $"Category: {selectedEvent.Category}\n" +
+                $"Date: {selectedEvent.EventDate:dd MMMM yyyy}\n" +
+                $"Priority: {selectedEvent.Priority}\n\n" +
+                $"Description:\n{selectedEvent.Description}",
+                "Event Details",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         }
 
         private void btnBack_Click(object sender, EventArgs e)
@@ -430,7 +496,7 @@ namespace MunicipalServicesApp
                         lbl.ForeColor = Color.FromArgb(0, 82, 155);
                         lbl.Font = new Font(
                             "Segoe UI",
-                            18,
+                            20,
                             FontStyle.Bold);
                     }
                     else if (lbl.Name == "lblUpcomingEvents" ||
@@ -442,6 +508,14 @@ namespace MunicipalServicesApp
                             12,
                             FontStyle.Bold);
                     }
+                }
+
+                // Text boxes
+                if (ctrl is TextBox txt)
+                {
+                    txt.BackColor = Color.White;
+                    txt.ForeColor = Color.FromArgb(33, 37, 41);
+                    txt.Font = new Font("Segoe UI", 10);
                 }
 
                 // ComboBoxes
@@ -458,6 +532,13 @@ namespace MunicipalServicesApp
                 {
                     dtp.CalendarMonthBackground = Color.White;
                     dtp.Font = new Font("Segoe UI", 10);
+                }
+
+                // Checkboxes
+                if (ctrl is CheckBox chk)
+                {
+                    chk.ForeColor = Color.FromArgb(33, 37, 41);
+                    chk.Font = new Font("Segoe UI", 10);
                 }
 
                 // Recommendation list

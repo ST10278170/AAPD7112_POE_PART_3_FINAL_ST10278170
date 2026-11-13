@@ -86,6 +86,20 @@
     <Compile Include="ReportIssuesForm.Designer.cs">
       <DependentUpon>ReportIssuesForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="ServiceRequest.cs" />
+    <Compile Include="ServiceRequestAVLTree.cs" />
+    <Compile Include="ServiceRequestBinarySearchTree.cs" />
+    <Compile Include="ServiceRequestGraph.cs" />
+    <Compile Include="ServiceRequestMinimumSpanningTree.cs" />
+    <Compile Include="ServiceRequestPriorityHeap.cs" />
+    <Compile Include="ServiceRequestRedBlackTree.cs" />
+    <Compile Include="ServiceRequestRepository.cs" />
+    <Compile Include="ServiceRequestStatusForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ServiceRequestStatusForm.Designer.cs">
+      <DependentUpon>ServiceRequestStatusForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="SplashScreenForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -118,6 +132,9 @@
     </Compile>
     <EmbeddedResource Include="ReportIssuesForm.resx">
       <DependentUpon>ReportIssuesForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ServiceRequestStatusForm.resx">
+      <DependentUpon>ServiceRequestStatusForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="SplashScreenForm.resx">
       <DependentUpon>SplashScreenForm.cs</DependentUpon>

@@ -47,6 +47,12 @@ namespace MunicipalServicesApp
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            base.OnFormClosing(e);
+
+            // Respect any cancellation from other form-closing handlers.
+            if (e.Cancel)
+                return;
+
             DialogResult result = MessageBox.Show(
                 "Are you sure you want to exit the application?",
                 "Confirm Exit",
@@ -55,16 +61,24 @@ namespace MunicipalServicesApp
 
             if (result == DialogResult.No)
             {
-                e.Cancel = true; // Prevent closing
+                e.Cancel = true;
             }
-
-            base.OnFormClosing(e);
         }
 
 
         private void btnServiceStatus_Click(object sender, EventArgs e)
         {
-            btnServiceStatus.Enabled = false;
+            this.Hide();
+
+            using (ServiceRequestStatusForm form = new ServiceRequestStatusForm())
+            {
+                form.ShowDialog();
+            }
+
+            this.Show();
+
+            // Reapply the theme when returning to the Main Menu.
+            ApplyUnifiedTheme(this);
         }
 
 
