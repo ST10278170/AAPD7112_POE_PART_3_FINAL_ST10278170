@@ -62,13 +62,13 @@ The project uses the following NuGet packages:
 - BouncyCastle.Cryptography – Version 2.6.2
 - iTextSharp – Version 5.5.13.5
 
-These dependencies are listed in `packages.config`. Visual Studio can restore them through NuGet Package Restore.
+These dependencies are listed in packages.config. Visual Studio can restore them through NuGet Package Restore.
 
 ## How to Open and Run the Application
 
 1. Download or clone this repository.
 2. Extract the downloaded ZIP file if necessary.
-3. Open the project solution file, `MunicipalServicesApp.slnx`, in a compatible version of Visual Studio.
+3. Open the project solution file, MunicipalServicesApp.slnx, in a compatible version of Visual Studio.
 4. Allow Visual Studio to restore the NuGet packages.
 5. Ensure that the .NET Framework 4.7.2 Developer Pack is installed.
 6. Build the solution using **Build → Build Solution**.
@@ -90,26 +90,26 @@ If package restoration does not start automatically, use the NuGet package resto
 
 The project contains the following main components:
 
-- `MainForm.cs` – Main application menu.
-- `ReportIssuesForm.cs` – Issue reporting functionality.
-- `ViewIssuesForm.cs` – Displays reported issues.
-- `EditIssueForm.cs` – Allows issue details to be edited.
-- `LocalEventsForm.cs` – Local events and announcements.
-- `EventRepository.cs` – Stores and manages event information.
-- `ServiceRequestStatusForm.cs` – Service request tracking interface.
-- `ServiceRequestRepository.cs` – Manages service requests and their associated data structures.
-- `ServiceRequestBinarySearchTree.cs` – Binary Search Tree implementation.
-- `ServiceRequestAVLTree.cs` – AVL Tree implementation.
-- `ServiceRequestRedBlackTree.cs` – Red-Black Tree implementation.
-- `ServiceRequestPriorityHeap.cs` – Priority Max-Heap implementation.
-- `ServiceRequestGraph.cs` – Graph implementation.
-- `ServiceRequestMinimumSpanningTree.cs` – Minimum Spanning Tree implementation.
+- MainForm.cs – Main application menu.
+- ReportIssuesForm.cs – Issue reporting functionality.
+- ViewIssuesForm.cs – Displays reported issues.
+- EditIssueForm.cs – Allows issue details to be edited.
+- LocalEventsForm.cs – Local events and announcements.
+- EventRepository.cs – Stores and manages event information.
+- ServiceRequestStatusForm.cs – Service request tracking interface.
+- ServiceRequestRepository.cs – Manages service requests and their associated data structures.
+- ServiceRequestBinarySearchTree.cs – Binary Search Tree implementation.
+- ServiceRequestAVLTree.cs – AVL Tree implementation.
+- ServiceRequestRedBlackTree.cs – Red-Black Tree implementation.
+- ServiceRequestPriorityHeap.cs – Priority Max-Heap implementation.
+- ServiceRequestGraph.cs – Graph implementation.
+- ServiceRequestMinimumSpanningTree.cs – Minimum Spanning Tree implementation.
 
 ## Notes
 
 - The project targets .NET Framework 4.7.2.
 - NuGet packages must be restored before building if they are not already available.
-- The `bin`, `obj`, `.vs` and `packages` directories are excluded from version control.
+- The bin, obj, .vs and packages directories are excluded from version control.
 - The source code and project configuration are included in this repository.
 
 
